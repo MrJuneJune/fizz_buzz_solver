@@ -1,0 +1,5 @@
+# virtual env folder
+env/
+
+# pyright configurations
+pyrightconfig.json
