@@ -1,25 +1,27 @@
-# FizzBuzz solvers
+# FizzBuzz Solvers
 
-# Motivation
+## Motivation
 
-Fizz buzz is a common problem asked in programming. I want to just create a NN that solves FizzBuzz using python for fun so when evidently some dude ask me this question, I solve using NN and say hey I don't know how it works hehe.
+FizzBuzz is a common problem in programming interviews. I decided to create a neural network (NN) that solves FizzBuzz using Python for fun. This way, if someone asks me this question, I can demonstrate a solution using a neural network and say, "I don't know how it works" humorously.
 
-I will also add a graphic implementation on how these NN works which would be fun (cancer to do)
+I also plan to add a graphical implementation to show how these NNs work, which will be an interesting challenge. My goal is to visualize this on the web, either by replicating the whole thing in JavaScript or by using a Python API to show updates.
 
-## Pre-requisite
+## Prerequisites
 
-Start any python env. I would usually create docker image or python virtual env.
+Set up any Python environment. I usually create a Docker image or a Python virtual environment.
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
-## How to run
+## How to Run
 
-Run the main.py
+Run the `main.py` script:
 
-```
-python main.py # or any equivalents
+```bash
+python main.py # or any equivalent command
 ```
 
 ## Explanations
+
+Further explanations and details about the project will be provided here.

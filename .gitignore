@@ -3,3 +3,6 @@ env/
 
 # pyright configurations
 pyrightconfig.json
+
+# Models
+**/models/**

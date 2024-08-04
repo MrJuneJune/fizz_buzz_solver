@@ -2,56 +2,23 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+import random
 
-# Don't want to write if elses
-numbers = {3: 1, 5: 2}
-
-# Universe start from 0
-NUMBER_OF_KEYS = sum(numbers.values()) + 1 
-
-# sizes of bits (vectors)
-NUM_DIGITS = 10
-
-# Number of neurons
-NUMS_NEURONS = 100
+from helpers import calculate_accuracy, find
+from constants import LEARN_END_INT, LEARN_RANGE, NUMBERS, NUMBER_OF_KEYS, NUM_DIGITS, MODEL_SAVE_PATH, LEARN_START_INT
+from neural_networks import FizzBuzzNN
 
 """
-FizzBuzz neural network objects.
+Solve fizz buzz and put it as 1 x SUMS matrixs.
 
-It has two connected layers for learning and output.
-
-Activation layer is using non-linear(ReLU) if it is just linear apparently, it cannot learn anything more complexed.
-I actually don't know why the fuck it is that case lol
-"""
-class FizzBuzzNN(nn.Module):
-    def __init__(self):
-        super(FizzBuzzNN, self).__init__()
-        # input sizes is the fixed bit sizes, output is 100 which can be adjusted.
-        self.layer1 = nn.Linear(NUM_DIGITS, NUMS_NEURONS)
-        self.layer2 = nn.Linear(NUMS_NEURONS, NUMBER_OF_KEYS)
-    
-    def forward(self, x):
-        x = torch.relu(self.layer1(x))
-        x = self.layer2(x)
-        return x
-
-"""
-Function to print out all weigths and biases
-"""
-def print_layer_parameters(model):
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print(f'{name}:\n{param.data.numpy()}\n')
-
-"""
-Solve fizz buzz and just put it as 1 x SUMS matrixs
+Lengths are dependent on the size of the dictionary. Made it generic so we can use more than 3, 5 and more close to N
 """
 def fizz_buzz_solver(num):
     curr_index = 0
     ans = [0 for _ in range(NUMBER_OF_KEYS)]
-    for  number, index in numbers.items():
+    for  number, index in NUMBERS.items():
         if num % number == 0:
-            curr_index += index
+            curr_index += index[0]
     ans[curr_index] = 1
     return  ans
 
@@ -59,43 +26,34 @@ def fizz_buzz_solver(num):
 Print Fizz buzz from the perdictions
 """
 def fizz_buzz(i, prediction):
+    # TODO(1): Update this shit as well
     return [str(i), "Fizz", "Buzz", "FizzBuzz"][prediction]
 
-def find(lis):
-    for key, i in enumerate(lis):
-        if i == 1:
-            return key
-
-"""
-Function to calculate accuracy.
-
-argmax of outputs will grab indexes of max values from the inputs.
-Since our inputs (outputs from the models) will be 1 x 4 i.e) [0, 0, 1, 0] the indices.
-"""
-def calculate_accuracy(model, x, y):
-    model.eval()
-    with torch.no_grad():
-        outputs = model(x)
-        predicted = torch.argmax(outputs, dim=1)
-        correct = (predicted == torch.argmax(y, dim=1)).sum().item()
-        accuracy = correct / len(y)
-    model.train()
-    return accuracy
-
-# double checking my code
+# double checking my code because I am dumb
 # for x in range(1, 100):
 #     print(fizz_buzz(x, find(fizz_buzz_solver(x))))
 
+"""
+Need to set input vector to be constants.
+"""
 def binary_encode(i, num_digits):
     return np.array([i >> d & 1 for d in range(num_digits)])
 
+"""
+Creating a x(input), y(result) data sets from 101, to 1024  we can pick any number
+"""
 def create_datasets():
-    x_train = torch.Tensor(np.array([binary_encode(i, NUM_DIGITS) for i in range(101, 1024)]))
-    y_train = torch.Tensor(np.array([fizz_buzz_solver(i) for i in range(101, 1024)]))
+    print(f"Created a dataset from {LEARN_START_INT} to {LEARN_END_INT}")
+    x_train = torch.Tensor(np.array([binary_encode(i, NUM_DIGITS) for i in LEARN_RANGE]))
+    y_train = torch.Tensor(np.array([fizz_buzz_solver(i) for i in LEARN_RANGE]))
 
     return x_train, y_train
 
-def train(model, x_train, y_train, loss_fn, optimizer, epochs=5000):
+"""
+Training
+"""
+def train(model, x_train, y_train, loss_fn, optimizer, epochs=10000):
+    print("Start training!")
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
@@ -106,28 +64,58 @@ def train(model, x_train, y_train, loss_fn, optimizer, epochs=5000):
 
         if epoch % 500 == 0:
             accuracy = calculate_accuracy(model, x_train, y_train)
-            print_layer_parameters(model)
-            print(f'Epoch {epoch}, Loss: {loss.item()}, Accuracy: {accuracy * 100:.2f}%')
+            # Checking how it is getting updated.
+            # print_layer_parameters(model)
+            print(f'Epoch {epoch}, Loss: {loss.item()}, Accuracy: {accuracy * 100:.2f}%\nSaving the model...')
+            torch.save(model.state_dict(), MODEL_SAVE_PATH + '/fizz_buzz_model.pth')
+            print(f"Saved")
 
 
+if __name__=="__main__":
+    model = FizzBuzzNN()
 
-model = FizzBuzzNN()
-x_train, y_train = create_datasets()
+    # Model save path
+    import os
+    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
-loss_fn = nn.CrossEntropyLoss()
+    fizz_buzz_model = os.path.join(MODEL_SAVE_PATH, 'fizz_buzz_model.pth')
 
-# this is used to change the weights of the nn
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # Load weights if available
+    if os.path.exists(fizz_buzz_model):
+        model.load_state_dict(torch.load(fizz_buzz_model, weights_only=True))
+        print("Loaded generator weights")
+    else:
+        print("Creating a new model")
+    
+    x_train, y_train = create_datasets()
+   
+    loss_fn = nn.CrossEntropyLoss()
+    
+    # this is used to change the weights of the nn
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    train(model, x_train, y_train, loss_fn, optimizer)
+   
+    # Creating data to test model on that isn't from our data sets
+    start_int = random.randint(0, LEARN_START_INT - 500)
+    end_int = random.randint(start_int+100, start_int+300)
 
-train(model, x_train, y_train, loss_fn, optimizer)
+    print(f"Testing random int from {start_int} to {end_int}")
+    x_test = np.array([binary_encode(i, NUM_DIGITS) for i in range(start_int, end_int)])
+    x_test = torch.Tensor(x_test)
+    
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(x_test)
+        predictions = torch.argmax(test_outputs, dim=1).numpy()
+    
+    wrong = 0
+    start = 0
+    for i in range(start_int, end_int):
+        fake = fizz_buzz(i, predictions[start])
+        real = fizz_buzz(i, find(fizz_buzz_solver(i)))
+        wrong += 1 if fake != real else 0
+        start += 1
+        print(f"Model: {fake},\t Real: {real}")
 
-x_test = np.array([binary_encode(i, NUM_DIGITS) for i in range(1, 101)])
-x_test = torch.Tensor(x_test)
-
-model.eval()
-with torch.no_grad():
-    test_outputs = model(x_test)
-    predictions = torch.argmax(test_outputs, dim=1).numpy()
-
-# for i in range(1, 101):
-#     print(fizz_buzz(i, predictions[i-1]))
+    print(f"It was wrong {wrong} times. It has accuracy of {100 - round((wrong / start)*100)}%")
